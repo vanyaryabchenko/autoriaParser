@@ -1,5 +1,6 @@
 import csv
 import random
+import sqlite3
 from time import sleep
 import requests
 from bs4 import BeautifulSoup
@@ -81,14 +82,54 @@ class CSVWriter:
             writer.writerow(row)
 
 
+class SQLWriter:
+    def __init__(self, filename, tablename, headers):
+        self.filename = filename
+        self.tablename = tablename
+        self.headers = headers
+        self.con = sqlite3.connect(self.filename)
+        self.cur = self.con.cursor()
+
+        create = f'''
+        CREATE TABLE IF NOT EXISTS {self.tablename} (
+            car_id INT,
+            data_link_to_view varchar(255),
+            engine varchar(255),
+            drive_unit varchar(64),
+            technical_condition varchar(64),
+            color varchar(64)
+        );
+        '''
+        self.cur.execute(create)
+        self.con.commit()
+        self.con.close()
+
+    def write(self, row: list):
+        values = ''
+        for item in row:
+            values += f"'{item}', "
+        sql = f'''
+        INSERT INTO {self.tablename}
+        VALUES ({values[:-2]});
+        '''
+        print(sql)
+        self.con = sqlite3.connect(self.filename)
+        self.cur = self.con.cursor()
+        self.cur.execute(sql)
+        self.con.commit()
+        self.con.close()
+
+
 def main():
     page = 0
     car_ids = set()
 
     writers = (
         CSVWriter('cars.csv', ['car_id', 'data_link_to_view', 'engine', 'drive_unit', 'technical_condition', 'color']),
-        CSVWriter('cars2.csv', ['car_id', 'data_link_to_view', 'engine', 'drive_unit', 'technical_condition', 'color'])
+        CSVWriter('cars2.csv', ['car_id', 'data_link_to_view', 'engine', 'drive_unit', 'technical_condition', 'color']),
+        SQLWriter('cars.db', 'cars', ['car_id', 'data_link_to_view', 'engine', 'drive_unit', 'technical_condition', 'color'])
     )
+    breakpoint()
 
     while True:
         print(f'Page: {page}')
